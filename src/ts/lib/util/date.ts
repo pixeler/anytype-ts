@@ -1,10 +1,120 @@
 import * as I from 'Interface';
 
+const GREGORIAN_MONTH_DAYS: { [key: number]: number } = {
+	1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
+	7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31,
+};
+const DAY_SECONDS = 86400;
+
+const G_D_M = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+
+/**
+ * Converts a Gregorian date to Solar Hijri (Jalali).
+ */
+export function toJalaali (gy: number, gm: number, gd: number): { jy: number, jm: number, jd: number } {
+	const gy2 = (gm > 2) ? (gy + 1) : gy;
+	let days = 355666 + (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + G_D_M[gm - 1];
+	let jy = -1595 + (33 * Math.floor(days / 12053));
+	days %= 12053;
+	jy += 4 * Math.floor(days / 1461);
+	days %= 1461;
+	if (days > 365) {
+		jy += Math.floor((days - 1) / 365);
+		days = (days - 1) % 365;
+	};
+	const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+	const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+	return { jy, jm, jd };
+};
+
+/**
+ * Converts a Solar Hijri (Jalali) date to Gregorian.
+ */
+export function toGregorian (jy: number, jm: number, jd: number): { gy: number, gm: number, gd: number } {
+	const jy2 = jy + 1595;
+	let days = -355668 + (365 * jy2) + Math.floor(jy2 / 33) * 8 + Math.floor(((jy2 % 33) + 3) / 4) + jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+	let gy = 400 * Math.floor(days / 146097);
+	days %= 146097;
+	if (days > 36524) {
+		gy += 100 * Math.floor(--days / 36524);
+		days %= 36524;
+		if (days >= 365) days++;
+	};
+	gy += 4 * Math.floor(days / 1461);
+	days %= 1461;
+	if (days > 365) {
+		gy += Math.floor((days - 1) / 365);
+		days = (days - 1) % 365;
+	};
+	const sal_a = [0, 31, ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+	let gm = 0;
+	while (gm < 13 && days >= sal_a[gm]) {
+		days -= sal_a[gm];
+		gm++;
+	};
+	const gd = days + 1;
+	return { gy, gm, gd };
+};
+
+const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+export function toPersianDigits (s: string | number): string {
+	if (s === null || s === undefined) {
+		return '';
+	};
+	return String(s).replace(/[0-9]/g, (w) => PERSIAN_DIGITS[Number(w)]);
+};
+
+export function fromPersianDigits (s: string): string {
+	if (!s) {
+		return '';
+	};
+	return String(s).replace(/[۰-۹]/g, (w) => String(w.charCodeAt(0) - 1776));
+};
+
+export const PERSIAN_MONTH_NAMES = [
+	'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+	'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
+];
+
+const safeTranslate = (key: string, fallback = ''): string => {
+	try {
+		if (typeof translate === 'function') {
+			const res = translate(key);
+			if (res && !res.startsWith('⚠️')) {
+				return res;
+			}
+		}
+	} catch {
+		// ignore
+	}
+	return fallback;
+};
+
 /**
  * Utility class for date and time manipulation, formatting, and calculations.
  * Provides methods for parsing, formatting, and working with dates and times.
  */
 class UtilDate {
+
+	/**
+	 * Checks whether the Persian (Solar Hijri) calendar is selected.
+	 */
+	isPersianCalendar (): boolean {
+		try {
+			return S.Common?.calendarType === 'persian';
+		} catch {
+			return false;
+		};
+	};
+
+	/**
+	 * Checks whether a given Persian year is a leap year.
+	 */
+	isPersianLeapYear (jy: number): boolean {
+		const g = toGregorian(jy, 12, 30);
+		const j = toJalaali(g.gy, g.gm, g.gd);
+		return j.jy === jy && j.jm === 12 && j.jd === 30;
+	};
 
 	/**
 	 * Returns the current time as a Unix timestamp (seconds since epoch).
@@ -29,11 +139,20 @@ class UtilDate {
 	 */
 	timestamp (y?: number, m?: number, d?: number, h?: number, i?: number, s?: number): number {
 		y = Number(y) || 0;
-		m = (Number(m) || 0) - 1;
+		m = Number(m) || 0;
 		d = Number(d) || 0;
 		h = Number(h) || 0;
 		i = Number(i) || 0;
 		s = Number(s) || 0;
+
+		if (this.isPersianCalendar() && (y >= 1000 && y < 1900)) {
+			const g = toGregorian(y, m || 1, d || 1);
+			y = g.gy;
+			m = g.gm;
+			d = g.gd;
+		};
+
+		m = m - 1;
 
 		let t: Date = null;
 
@@ -65,7 +184,27 @@ class UtilDate {
 	 * @returns {number} The parsed Unix timestamp.
 	 */
 	parseDate (value: string, format?: I.DateFormat): number {
-		const [ date, time ] = String(value || '').split(' ');
+		value = fromPersianDigits(String(value || '').replace(/[\u200E\u200F]/g, '')).trim();
+
+		for (let idx = 0; idx < PERSIAN_MONTH_NAMES.length; idx++) {
+			const mName = PERSIAN_MONTH_NAMES[idx];
+			if (value.includes(mName)) {
+				const monthNum = idx + 1;
+				const nums = value.replace(mName, ' ').match(/\d+/g);
+				if (nums && nums.length >= 2) {
+					let num1 = parseInt(nums[0], 10);
+					let num2 = parseInt(nums[1], 10);
+					let y = num2 > 1000 ? num2 : (num1 > 1000 ? num1 : num2);
+					let d = (y === num2) ? num1 : num2;
+					let h = nums[2] ? parseInt(nums[2], 10) : 0;
+					let i = nums[3] ? parseInt(nums[3], 10) : 0;
+					let s = nums[4] ? parseInt(nums[4], 10) : 0;
+					return this.timestamp(y, monthNum, d, h, i, s);
+				};
+			};
+		};
+
+		const [ date, time ] = value.split(' ');
 
 		let d: any = 0;
 		let m: any = 0;
@@ -76,7 +215,7 @@ class UtilDate {
 
 		switch (format) {
 			case I.DateFormat.ISO: {
-				[ y, m, d ] = String(date || '').split('.');
+				[ y, m, d ] = String(date || '').split(/[.\-\/]/);
 				break;
 			};
 
@@ -84,12 +223,12 @@ class UtilDate {
 			case I.DateFormat.MonthAbbrBeforeDay:
 			case I.DateFormat.Long:
 			case I.DateFormat.Default: {
-				[ m, d, y ] = String(date || '').split('.');
+				[ m, d, y ] = String(date || '').split(/[.\-\/]/);
 				break;
 			};
 
 			default: {
-				[ d, m, y ] = String(date || '').split('.');
+				[ d, m, y ] = String(date || '').split(/[.\-\/]/);
 				break;
 			};
 		};
@@ -103,12 +242,16 @@ class UtilDate {
 		i = Number(i) || 0;
 		s = Number(s) || 0;
 
+		if (d > 1000 && y < 1000) {
+			const tmp = y;
+			y = d;
+			d = tmp;
+		};
+
 		m = Math.min(12, Math.max(1, m));
 
-		let maxDays = J.Constant.monthDays[m];
-		if ((m == 2) && (this.isLeapYear(y))) {
-			maxDays = 29;
-		};
+		const md = this.getMonthDays(y);
+		const maxDays = md[m] || 31;
 		d = Math.min(maxDays, Math.max(1, d));
 		h = Math.min(24, Math.max(0, h));
 		i = Math.min(60, Math.max(0, i));
@@ -127,6 +270,18 @@ class UtilDate {
 		timestamp = Number(timestamp) || 0;
 
 		const d = new Date(timestamp * 1000);
+		const isPersian = this.isPersianCalendar();
+
+		let jy = 0;
+		let jm = 0;
+		let jd = 0;
+
+		if (isPersian) {
+			const j = toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+			jy = j.jy;
+			jm = j.jm;
+			jd = j.jd;
+		};
 
 		const pad = (n: number, c: number) => {
 			let s = String(n);
@@ -146,30 +301,33 @@ class UtilDate {
 			},
 			D: () => {
 				const t = f.l(); 
-				return t.substring(0,3);
+				return isPersian ? t.substring(0, 2) : t.substring(0, 3);
 			},
 			j: () => {
-				return d.getDate();
+				return isPersian ? jd : d.getDate();
 			},
 			// Month
 			F: () => {
-				return translate(`month${f.n()}`);
+				if (isPersian) {
+					return safeTranslate(`persianMonth${f.n()}`, PERSIAN_MONTH_NAMES[f.n() - 1] || '');
+				}
+				return safeTranslate(`month${f.n()}`);
 			},
 			m: () => {
 				return pad(f.n(), 2);
 			},
 			M: () => {
-				return f.F().substring(0, 3);
+				return isPersian ? f.F() : f.F().substring(0, 3);
 			},
 			n: () => {
-				return d.getMonth() + 1;
+				return isPersian ? jm : (d.getMonth() + 1);
 			},
 			// Year
 			Y: () => {
-				return d.getFullYear();
+				return isPersian ? jy : d.getFullYear();
 			},
 			y: () => {
-				return (d.getFullYear() + '').slice(2);
+				return (f.Y() + '').slice(2);
 			},
 			// Time
 			a: () => {
@@ -201,7 +359,7 @@ class UtilDate {
 				return w == 0 ? 7 : w;
 			},
 			l: () => {
-				return translate(`day${f.N()}`);
+				return safeTranslate(`day${f.N()}`);
 			},
 		};
 		return format.replace(/[\\]?([a-zA-Z])/g, (t: string, s: string) => {
@@ -224,6 +382,21 @@ class UtilDate {
 	 * @returns {string} The format string.
 	 */
 	dateFormat (v: I.DateFormat): string {
+		if (this.isPersianCalendar()) {
+			switch (v) {
+				default:
+				case I.DateFormat.Default:				 return 'l، j F Y';
+				case I.DateFormat.Long:					 return 'j F Y';
+				case I.DateFormat.MonthAbbrBeforeDay:
+				case I.DateFormat.MonthAbbrAfterDay:	 return 'j F Y';
+				case I.DateFormat.Nordic:				 return 'j F Y';
+				case I.DateFormat.Short:				 return 'Y/m/d';
+				case I.DateFormat.ShortUS:				 return 'Y/m/d';
+				case I.DateFormat.European:				 return 'd/m/Y';
+				case I.DateFormat.ISO:					 return 'Y-m-d';
+			};
+		};
+
 		let f = '';
 		switch (v) {
 			default:
@@ -247,7 +420,11 @@ class UtilDate {
 	 * @returns {string} The formatted date string.
 	 */
 	dateWithFormat (f: I.DateFormat, t: number): string {
-		return this.date(this.dateFormat(f), t);
+		let str = this.date(this.dateFormat(f), t);
+		if (this.isPersianCalendar()) {
+			str = '\u200F' + toPersianDigits(str);
+		};
+		return str;
 	};
 
 	/**
@@ -273,7 +450,11 @@ class UtilDate {
 	 * @returns {string} The formatted time string.
 	 */
 	timeWithFormat (f: I.TimeFormat, t: number, withSeconds?: boolean): string {
-		return this.date(this.timeFormat(f, withSeconds), t);
+		let str = this.date(this.timeFormat(f, withSeconds), t);
+		if (this.isPersianCalendar()) {
+			str = '\u200F' + toPersianDigits(str);
+		};
+		return str;
 	};
 
 	/**
@@ -286,17 +467,17 @@ class UtilDate {
 
 		const ct = this.date('d.m.Y', t);
 		const time = this.now();
-		const { day } = J.Constant;
+		const day = (typeof J !== 'undefined' && J.Constant?.day) || DAY_SECONDS;
 
 		let ret = '';
 		if (ct == this.date('d.m.Y', time)) {
-			ret = translate('commonToday');
+			ret = safeTranslate('commonToday', 'Today');
 		} else
 		if (ct == this.date('d.m.Y', time + day)) {
-			ret = translate('commonTomorrow');
+			ret = safeTranslate('commonTomorrow', 'Tomorrow');
 		} else
 		if (ct == this.date('d.m.Y', time - day)) {
-			ret = translate('commonYesterday');
+			ret = safeTranslate('commonYesterday', 'Yesterday');
 		};
 		return ret;
 	};
@@ -328,6 +509,10 @@ class UtilDate {
 			ret = `${this.date('d', t)}/${this.date('m', t)}${year}`;
 		};
 
+		if (this.isPersianCalendar()) {
+			ret = '\u200F' + toPersianDigits(ret);
+		};
+
 		return ret;
 	};
 
@@ -348,10 +533,12 @@ class UtilDate {
 	 * @returns {boolean}
 	 */
 	isThisWeek (t: number): boolean {
+		const { firstDay } = S.Common;
 		const now = new Date(this.now() * 1000);
-		const currentDay = now.getDay();
+		const currentDay = now.getDay() === 0 ? 7 : now.getDay();
+		const diff = (currentDay - firstDay + 7) % 7;
 		const startOfWeek = new Date(now);
-		startOfWeek.setDate(now.getDate() - currentDay);
+		startOfWeek.setDate(now.getDate() - diff);
 		startOfWeek.setHours(0, 0, 0, 0);
 
 		return t >= startOfWeek.getTime() / 1000;
@@ -367,7 +554,7 @@ class UtilDate {
 			return '';
 		};
 
-		const { day } = J.Constant;
+		const day = (typeof J !== 'undefined' && J.Constant?.day) || DAY_SECONDS;
 		const y = Math.floor(t / (day * 365));
 
 		t -= y * (day * 365);
@@ -385,19 +572,19 @@ class UtilDate {
 
 		let ret = '';
 		if (y > 0) {
-			ret = U.String.sprintf('%dy', y);
+			ret = `${y}y`;
 		} else
 		if (d > 0) {
-			ret = U.String.sprintf('%dd', d);
+			ret = `${d}d`;
 		} else
 		if (h > 0) {
-			ret = U.String.sprintf('%dh', h);
+			ret = `${h}h`;
 		} else
 		if (m > 0) {
-			ret = U.String.sprintf('%dmin', m);
+			ret = `${m}min`;
 		} else
 		if (s > 0) {
-			ret = U.String.sprintf('%ds', s);
+			ret = `${s}s`;
 		};
 		return ret;
 	};
@@ -499,7 +686,16 @@ class UtilDate {
 	 * @returns {object} The month days mapping.
 	 */
 	getMonthDays (y: number) {
-		const ret = {...J.Constant.monthDays};
+		if (this.isPersianCalendar()) {
+			const isLeap = this.isPersianLeapYear(y);
+			return {
+				1: 31, 2: 31, 3: 31, 4: 31, 5: 31, 6: 31,
+				7: 30, 8: 30, 9: 30, 10: 30, 11: 30,
+				12: isLeap ? 30 : 29,
+			};
+		};
+
+		const ret = (typeof J !== 'undefined' && J.Constant?.monthDays) ? {...J.Constant.monthDays} : {...GREGORIAN_MONTH_DAYS};
 
 		// February
 		if (this.isLeapYear(y)) {
@@ -559,6 +755,8 @@ class UtilDate {
 			};
 		};
 
+		const isPersian = this.isPersianCalendar();
+
 		days = days.map(it => {
 			const ts = this.timestamp(it.y, it.m, it.d);
 			const wd = Number(this.date('N', ts));
@@ -568,7 +766,7 @@ class UtilDate {
 				ts,
 				wd, 
 				isToday: ts == today,
-				isWeekend: wd >= 6,
+				isWeekend: isPersian ? (wd === 5) : (wd >= 6),
 			};
 		});
 
@@ -619,8 +817,12 @@ class UtilDate {
 	 */
 	getMonths (): { id: number, name: string }[] {
 		const ret = [];
+		const isPersian = this.isPersianCalendar();
 		for (let i = 1; i <= 12; ++i) {
-			ret.push({ id: i, name: translate(`month${i}`) });
+			const name = isPersian ?
+				safeTranslate(`persianMonth${i}`, PERSIAN_MONTH_NAMES[i - 1] || '') :
+				safeTranslate(`month${i}`, '');
+			ret.push({ id: i, name });
 		};
 		return ret;
 	};
@@ -631,10 +833,11 @@ class UtilDate {
 	 * @param {number} end - The end year.
 	 * @returns {{ id: number, name: string }[]} The years.
 	 */
-	getYears (start: number, end: number): { id: number, name: string }[] {
+	getYears (start: number, end: number): { id: number, name: any }[] {
 		const ret = [];
+		const isPersian = this.isPersianCalendar();
 		for (let i = start; i <= end; ++i) {
-			ret.push({ id: i, name: i });
+			ret.push({ id: i, name: isPersian ? toPersianDigits(i) : i });
 		};
 		return ret;
 	};
@@ -645,7 +848,7 @@ class UtilDate {
 	 * @returns {{ d: number, m: number, y: number, h: number, i: number, s: number }} The date parameters.
 	 */
 	getDateParam (t: number) {
-		const [ d, m, y, h, i, s ] = U.Date.date('j,n,Y,H,i,s', t).split(',').map(it => Number(it));
+		const [ d, m, y, h, i, s ] = this.date('j,n,Y,H,i,s', t).split(',').map(it => Number(it));
 		return { d, m, y, h, i, s };
 	};
 

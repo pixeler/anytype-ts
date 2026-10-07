@@ -61,7 +61,7 @@ function waitForLocalhost (port) {
 };
 
 function startElectron () {
-	const args = isWindows ? [ 'electron.cmd', '.' ] : [ 'electron', '.' ];
+	const args = [ 'electron', '.' ];
 
 	electronProcess = childProcess.spawn('bunx', args, {
 		stdio: 'inherit',

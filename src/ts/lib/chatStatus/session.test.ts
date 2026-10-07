@@ -9,7 +9,10 @@ describe('application-memory status session', () => {
 	it('elects one ingestion owner and transfers it while retaining history and expansion', () => {
 		const sent: [number, StatusDelta][] = [];
 		const session = new ChatStatusSession((id, delta) => sent.push([ id, structuredClone(delta) ]));
-		const latest = (id: number) => sent.filter(([ client ]) => client == id).at(-1)[1];
+		const latest = (id: number) => {
+			const matches = sent.filter(([ client ]) => client == id);
+			return matches[matches.length - 1][1];
+		};
 		session.receive(1, scope, { type: 'attach' });
 		session.receive(2, scope, { type: 'attach' });
 		expect(latest(1).owner).toBe(true);
@@ -40,10 +43,10 @@ describe('application-memory status session', () => {
 		session.receive(1, other, { type: 'attach' });
 		session.receive(1, other, update);
 		session.receive(1, scope, { type: 'clearSpace' });
-		expect(sent.at(-1)).toMatchObject({ reset: true, items: [], owner: false });
+		expect(sent[sent.length - 1]).toMatchObject({ reset: true, items: [], owner: false });
 		session.receive(2, other, { type: 'attach' });
-		expect(sent.at(-1).items).toHaveLength(1);
+		expect(sent[sent.length - 1].items).toHaveLength(1);
 		session.receive(2, scope, { type: 'attach' });
-		expect(sent.at(-1).items).toHaveLength(0);
+		expect(sent[sent.length - 1].items).toHaveLength(0);
 	});
 });

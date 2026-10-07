@@ -1,4 +1,1 @@
-pb
-pkg
-protos
-*.js
+[^.]*

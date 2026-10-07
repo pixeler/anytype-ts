@@ -276,7 +276,7 @@ const WidgetViewCalendar = forwardRef<WidgetViewCalendarRefProps, I.WidgetViewCo
 								onContextMenu={(e: any) => onContextMenu(e, item)}
 							>
 								<div className="inner">
-									{item.d}
+									{U.Date.isPersianCalendar() ? U.String.toPersianDigits(item.d) : item.d}
 									{check ? <div className="bullet" /> : ''}
 								</div>
 							</div>	

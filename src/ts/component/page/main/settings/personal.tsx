@@ -9,7 +9,7 @@ enum ChatKey {
 
 const PageMainSettingsPersonal = forwardRef<I.PageRef, I.PageSettingsComponent>((props, ref) => {
 
-	const { config, linkStyle, fileStyle, fullscreenObject, hideSidebar, gridTitleClick, notificationSound, hideFileObjectsInTree, unicodeReplace } = S.Common;
+	const { config, linkStyle, fileStyle, fullscreenObject, hideSidebar, gridTitleClick, notificationSound, fontPreference, hideFileObjectsInTree, unicodeReplace } = S.Common;
 	const { hideTray, showMenuBar, alwaysShowTabs, hardwareAcceleration } = config;
 	const { theme, chatCmdSend, commentCmdSend } = S.Common;
 	const { networkConfig } = S.Auth;
@@ -84,6 +84,12 @@ const PageMainSettingsPersonal = forwardRef<I.PageRef, I.PageSettingsComponent>(
 		...Sound.list.map(it => ({ id: it.id, name: it.name })),
 	];
 
+	const fontOptions: I.Option[] = [
+		{ id: 'system', name: translate('popupSettingsPersonalFontSystem') },
+		{ id: 'dana', name: translate('popupSettingsPersonalFontDana') },
+		{ id: 'digikala', name: translate('popupSettingsPersonalFontDigikala') },
+	];
+
 	return (
 		<>
 			<Title text={translate('popupSettingsPersonalTitle')} />
@@ -109,6 +115,19 @@ const PageMainSettingsPersonal = forwardRef<I.PageRef, I.PageSettingsComponent>(
 			</div>
 
 			<div className="actionItems">
+				<div className="item">
+					<Label text={translate('popupSettingsPersonalFont')} />
+
+					<Select
+						id="fontPreference"
+						value={fontPreference}
+						options={fontOptions}
+						onChange={(v: string) => S.Common.fontPreferenceSet(v)}
+						arrowClassName="black"
+						menuParam={{ horizontal: I.MenuDirection.Right }}
+					/>
+				</div>
+
 				<div className="item">
 					<Label text={translate('popupSettingsPersonalNotificationSound')} />
 

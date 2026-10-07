@@ -304,7 +304,7 @@ const CalendarItem = forwardRef<Ref, Props>((props, ref) => {
 				) : ''}
 
 				<div className="number" onClick={onOpenDate}>
-					<div className="inner">{d}</div>
+					<div className="inner">{U.Date.isPersianCalendar() ? U.String.toPersianDigits(d) : d}</div>
 				</div>
 			</div>
 

@@ -1435,7 +1435,14 @@ class UtilData {
 	 * @param {string} rootId - The root object ID.
 	 * @param {I.Block} block - The block.
 	 */
-	setRtl(rootId: string, block: I.Block, value: boolean, callBack?: (message: any) => void) {
+	setRtl(rootId: string, block: I.Block, value: boolean, isManual?: boolean | ((message: any) => void), callBack?: (message: any) => void) {
+		let manual: boolean | undefined = undefined;
+		if (typeof isManual === 'function') {
+			callBack = isManual;
+		} else if (typeof isManual === 'boolean') {
+			manual = isManual;
+		};
+
 		if (!block || virtualBlock.isVirtualId(block.id)) {
 			callBack?.({});
 			return;
@@ -1443,16 +1450,23 @@ class UtilData {
 
 		const fields = block.fields || {};
 		const current = Boolean(fields.isRtlDetected);
+		const expectedAlign = value ? I.BlockHAlign.Right : I.BlockHAlign.Left;
+		const currentManual = Boolean(fields.manualDirection);
 
-		if (current == value) {
+		const newFields: any = { ...fields, isRtlDetected: value };
+		if (manual !== undefined) {
+			newFields.manualDirection = manual;
+		};
+
+		if (current == value && block.hAlign === expectedAlign && (manual === undefined || currentManual === manual)) {
 			callBack?.({});
 			return;
 		};
 
 		C.BlockListSetFields(rootId, [
-			{ blockId: block.id, fields: { ...fields, isRtlDetected: value } }
+			{ blockId: block.id, fields: newFields }
 		], () => {
-			C.BlockListSetAlign(rootId, [block.id], value ? I.BlockHAlign.Right : I.BlockHAlign.Left, callBack);
+			C.BlockListSetAlign(rootId, [block.id], expectedAlign, callBack);
 		});
 	};
 

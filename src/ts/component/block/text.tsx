@@ -81,6 +81,24 @@ const BlockText = forwardRef<I.BlockRef, Props>((props, ref) => {
 	const clickCnt = useRef(0);
 	const prevStyleRef = useRef(style);
 	const phantomNewlineRef = useRef(false);
+	const currentRtlRef = useRef(Boolean(checkRtl));
+	const manualDirectionRef = useRef(Boolean(fields.manualDirection));
+	const ctrlShiftArmedRef = useRef<{ isRight: boolean; isLeft: boolean } | null>(null);
+	const otherKeyPressedRef = useRef(false);
+
+	useEffect(() => {
+		currentRtlRef.current = Boolean(checkRtl);
+		manualDirectionRef.current = Boolean(fields.manualDirection);
+		if (checkRtl) {
+			const editNode = editableRef.current?.getNode();
+			if (editNode) {
+				const editableEl = U.Dom.select('.editable', editNode) || editNode;
+				if (editableEl) {
+					editableEl.setAttribute('dir', 'rtl');
+				};
+			};
+		};
+	}, [ checkRtl, fields.manualDirection ]);
 
 	// live presence: carriages of the people editing this block right now (see Lib/presence).
 	// The parent Block observes S.Presence and re-renders us, so plain reads stay fresh here.
@@ -390,12 +408,69 @@ const BlockText = forwardRef<I.BlockRef, Props>((props, ref) => {
 		return Mark.fromHtml(value, restricted);
 	};
 
+	const applyRtlDirection = (isRtl: boolean, persist: boolean = true, isManual: boolean = false) => {
+		currentRtlRef.current = isRtl;
+		if (isManual) {
+			manualDirectionRef.current = true;
+		};
+
+		if (nodeRef.current) {
+			U.Dom.toggleClass(nodeRef.current, 'isRtl', isRtl);
+		};
+
+		const editNode = editableRef.current?.getNode();
+		if (editNode) {
+			U.Dom.toggleClass(editNode, 'isRtl', isRtl);
+			const editableEl = U.Dom.select('.editable', editNode) || editNode;
+			if (editableEl) {
+				editableEl.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+			};
+		};
+
+		const blockEl = (nodeRef.current as HTMLElement | null)?.closest('.block');
+		if (blockEl) {
+			if (isRtl) {
+				blockEl.classList.remove('align0', 'align1');
+				blockEl.classList.add('align2');
+			} else {
+				blockEl.classList.remove('align2');
+				blockEl.classList.add('align0');
+			};
+		};
+
+		if (persist) {
+			U.Data.setRtl(rootId, block, isRtl, isManual ? true : undefined);
+		};
+	};
+
+	const checkLiveRtl = () => {
+		if (block.isTextCode()) {
+			return;
+		};
+		const val = getTextValue();
+		const clean = String(val || '').replace(/[\u200B-\u200F\u202A-\u202E\uFEFF\u00AD]/g, '').trim();
+		if (!clean) {
+			manualDirectionRef.current = false;
+			return;
+		};
+		if (manualDirectionRef.current) {
+			return;
+		};
+		const detectedRtl = U.String.checkRtl(val);
+		if (detectedRtl !== currentRtlRef.current) {
+			applyRtlDirection(detectedRtl, true, false);
+		};
+	};
+
 	const onInput = () => {
 		onUpdate?.();
+		checkLiveRtl();
 	};
 	
 	const onKeyDownHandler = (e: any) => {
 		e.persist();
+
+		const key = e.key.toLowerCase();
 
 		// Flush any pending debounced text save to prevent stale overwrites
 		// when structural keys (Enter, Backspace, etc.) trigger their own save
@@ -406,7 +481,25 @@ const BlockText = forwardRef<I.BlockRef, Props>((props, ref) => {
 			return;
 		};
 
-		const key = e.key.toLowerCase();
+		// Check for Ctrl+Shift+X direction toggle
+		if (e.ctrlKey && e.shiftKey && key === 'x') {
+			e.preventDefault();
+			applyRtlDirection(!currentRtlRef.current, true, true);
+			return;
+		};
+
+		// Track Ctrl+Shift key combinations for direction change
+		if ((e.key === 'Control' && e.shiftKey) || (e.key === 'Shift' && e.ctrlKey)) {
+			ctrlShiftArmedRef.current = {
+				isRight: e.code === 'ShiftRight' || e.code === 'ControlRight',
+				isLeft: e.code === 'ShiftLeft' || e.code === 'ControlLeft',
+			};
+			otherKeyPressedRef.current = false;
+		} else if (e.key !== 'Control' && e.key !== 'Shift' && e.key !== 'Alt' && e.key !== 'Meta') {
+			otherKeyPressedRef.current = true;
+			ctrlShiftArmedRef.current = null;
+		};
+
 		const range = getRange();
 
 		if (!range) {
@@ -1175,6 +1268,27 @@ const BlockText = forwardRef<I.BlockRef, Props>((props, ref) => {
 			}, 300);
 		};
 
+		// Handle Ctrl+Shift direction switch on release
+		if (ctrlShiftArmedRef.current && !otherKeyPressedRef.current) {
+			if (e.key === 'Shift' || e.key === 'Control') {
+				const armed = ctrlShiftArmedRef.current;
+				ctrlShiftArmedRef.current = null;
+				otherKeyPressedRef.current = false;
+
+				if (armed.isRight) {
+					applyRtlDirection(true, true, true);
+				} else if (armed.isLeft) {
+					applyRtlDirection(false, true, true);
+				} else {
+					applyRtlDirection(!currentRtlRef.current, true, true);
+				};
+				return;
+			};
+		};
+
+		// Check live RTL on typing
+		checkLiveRtl();
+
 		onKeyUp(e, value, marksRef.current, range, props);
 
 		if (!keyboard.isSpecial(e) && !keyboard.withCommand(e)) {
@@ -1208,8 +1322,9 @@ const BlockText = forwardRef<I.BlockRef, Props>((props, ref) => {
 
 		raf(() => {
 			S.Menu.open('blockMention', {
-				classNameWrap: 'fromBlock',
+				classNameWrap: currentRtlRef.current ? 'fromBlock isRtl' : 'fromBlock',
 				element,
+				horizontal: currentRtlRef.current ? I.MenuDirection.Right : I.MenuDirection.Left,
 				recalcRect: () => {
 					const rect = U.Dom.getSelectionRect();
 					return rect ? { ...rect, y: rect.y + window.scrollY } : null;
@@ -1262,8 +1377,9 @@ const BlockText = forwardRef<I.BlockRef, Props>((props, ref) => {
 		S.Common.filterSet(range.from - 2, firstChar);
 
 		S.Menu.open('blockEmoji', {
-			classNameWrap: 'fromBlock',
+			classNameWrap: currentRtlRef.current ? 'fromBlock isRtl' : 'fromBlock',
 			element: `#block-${U.Common.esc(blockId)}`,
+			horizontal: currentRtlRef.current ? I.MenuDirection.Right : I.MenuDirection.Left,
 			recalcRect: () => {
 				const rect = U.Dom.getSelectionRect();
 				return rect ? { ...rect, y: rect.y + window.scrollY } : null;
@@ -1366,9 +1482,9 @@ const BlockText = forwardRef<I.BlockRef, Props>((props, ref) => {
 			callBack?.();
 		};
 
-		const isRtl = U.String.checkRtl(value);
+		const isRtl = manualDirectionRef.current ? currentRtlRef.current : U.String.checkRtl(value);
 
-		if (isRtl != checkRtl) {
+		if (!manualDirectionRef.current && isRtl != checkRtl) {
 			// Save text first so intermediate re-renders from setRtl have the correct text in store,
 			// preventing character loss and stale CSS direction
 			U.Data.blockSetText(rootId, block.id, value, marks, update, () => {
@@ -1813,7 +1929,7 @@ const BlockText = forwardRef<I.BlockRef, Props>((props, ref) => {
 		cv.push(`textColor textColor-${color}`);
 	};
 
-	if (isRtlFromText) {
+	if (checkRtl) {
 		cn.push('isRtl');
 	};
 

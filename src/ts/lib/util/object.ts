@@ -501,7 +501,39 @@ class UtilObject {
 			name = U.File.name(object);
 		} else
 		if (this.isTypeLayout(layout)) {
-			name = withPlural ? object.pluralName || object.name : object.name || object.pluralName;
+			const systemTypeMap: Record<string, { singular: string; plural: string }> = {
+				'ot-page': { singular: 'commonTypePage', plural: 'commonTypePages' },
+				'ot-task': { singular: 'commonTypeTask', plural: 'commonTypeTasks' },
+				'ot-collection': { singular: 'commonTypeCollection', plural: 'commonTypeCollections' },
+				'ot-bookmark': { singular: 'commonTypeBookmark', plural: 'commonTypeBookmarks' },
+				'ot-image': { singular: 'commonTypeImage', plural: 'commonTypeImages' },
+				'ot-note': { singular: 'commonTypeNote', plural: 'commonTypeNotes' },
+				'ot-file': { singular: 'commonTypeFile', plural: 'commonTypeFiles' },
+				'ot-video': { singular: 'commonTypeVideo', plural: 'commonTypeVideos' },
+				'ot-audio': { singular: 'commonTypeAudio', plural: 'commonTypeAudios' },
+			};
+			const defaultEnglishMap: Record<string, { singular: string; plural: string }> = {
+				'page': { singular: 'commonTypePage', plural: 'commonTypePages' },
+				'pages': { singular: 'commonTypePage', plural: 'commonTypePages' },
+				'task': { singular: 'commonTypeTask', plural: 'commonTypeTasks' },
+				'tasks': { singular: 'commonTypeTask', plural: 'commonTypeTasks' },
+				'collection': { singular: 'commonTypeCollection', plural: 'commonTypeCollections' },
+				'collections': { singular: 'commonTypeCollection', plural: 'commonTypeCollections' },
+				'bookmark': { singular: 'commonTypeBookmark', plural: 'commonTypeBookmarks' },
+				'bookmarks': { singular: 'commonTypeBookmark', plural: 'commonTypeBookmarks' },
+				'image': { singular: 'commonTypeImage', plural: 'commonTypeImages' },
+				'images': { singular: 'commonTypeImage', plural: 'commonTypeImages' },
+				'note': { singular: 'commonTypeNote', plural: 'commonTypeNotes' },
+				'notes': { singular: 'commonTypeNote', plural: 'commonTypeNotes' },
+			};
+			const key = object.uniqueKey;
+			const mapped = (key && systemTypeMap[key]) || defaultEnglishMap[String(object.name || '').toLowerCase()] || defaultEnglishMap[String(object.pluralName || '').toLowerCase()];
+			if (mapped) {
+				const trKey = withPlural ? mapped.plural : mapped.singular;
+				name = translate(trKey);
+			} else {
+				name = withPlural ? object.pluralName || object.name : object.name || object.pluralName;
+			};
 		} else {
 			name = object.name;
 		};

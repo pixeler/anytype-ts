@@ -359,6 +359,9 @@ const App: FC = () => {
 			S.Common.themeSet(config.theme);
 		};
 
+		S.Common.setFontClass();
+		S.Common.setLayoutDirectionClass();
+
 		S.Common.languagesSet(languages);
 		S.Common.dataPathSet(dataPath);
 		S.Common.windowIdSet(id);

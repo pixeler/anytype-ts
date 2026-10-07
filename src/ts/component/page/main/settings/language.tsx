@@ -4,13 +4,14 @@ import * as I from 'Interface';
 
 const PageMainSettingsLanguage = forwardRef<{}, I.PageSettingsComponent>((props, ref) => {
 
-	const { config, interfaceLang, showRelativeDates, dateFormat, timeFormat, firstDay } = S.Common;
+	const { config, interfaceLang, layoutDirection, calendarType, showRelativeDates, dateFormat, timeFormat, firstDay } = S.Common;
 	const { languages } = config;
 	const interfaceLanguages = U.Menu.getInterfaceLanguages();
 	const spellingRef = useRef(null);
 	const firstDayOptions = [
-		{ id: 1, name: translate('day1') },
+		{ id: 6, name: translate('day6') },
 		{ id: 7, name: translate('day7') },
+		{ id: 1, name: translate('day1') },
 	];
 
 	const getSpellingLanguages = () => {
@@ -67,7 +68,30 @@ const PageMainSettingsLanguage = forwardRef<{}, I.PageSettingsComponent>((props,
 						id="interfaceLang"
 						value={interfaceLang}
 						options={interfaceLanguages}
-						onChange={v => Action.setInterfaceLang(v)}
+						onChange={v => {
+							Action.setInterfaceLang(v);
+							const isRtl = [ 'fa-IR', 'ar-SA', 'he-IL' ].includes(v) || v.startsWith('fa') || v.startsWith('ar') || v.startsWith('he');
+							S.Common.layoutDirectionSet(isRtl ? 'rtl' : 'ltr');
+							if (v === 'fa-IR' || v.startsWith('fa')) {
+								S.Common.calendarTypeSet('persian');
+							}
+						}}
+						arrowClassName="black"
+						menuParam={{ horizontal: I.MenuDirection.Right, width: 300 }}
+					/>
+				</div>
+
+				<div className="item">
+					<Label text={translate('popupSettingsPersonalLayoutDirection')} />
+
+					<Select
+						id="layoutDirection"
+						value={layoutDirection}
+						options={[
+							{ id: 'rtl', name: translate('popupSettingsPersonalLayoutRtl') },
+							{ id: 'ltr', name: translate('popupSettingsPersonalLayoutLtr') },
+						]}
+						onChange={v => S.Common.layoutDirectionSet(v as 'ltr' | 'rtl')}
 						arrowClassName="black"
 						menuParam={{ horizontal: I.MenuDirection.Right, width: 300 }}
 					/>
@@ -76,6 +100,21 @@ const PageMainSettingsLanguage = forwardRef<{}, I.PageSettingsComponent>((props,
 
 			<Label className="section" text={translate('popupSettingsPersonalSectionDateTime')} />
 			<div className="actionItems">
+
+				<div className="item">
+					<Label text={translate('popupSettingsPersonalCalendarType')} />
+					<Select
+						id="calendarType"
+						value={calendarType}
+						options={[
+							{ id: 'gregorian', name: translate('popupSettingsPersonalCalendarGregorian') },
+							{ id: 'persian', name: translate('popupSettingsPersonalCalendarPersian') },
+						]}
+						onChange={v => S.Common.calendarTypeSet(v as 'gregorian' | 'persian')}
+						arrowClassName="black"
+						menuParam={{ horizontal: I.MenuDirection.Right, width: 300 }}
+					/>
+				</div>
 
 				<div className="item">
 					<Label text={translate('popupSettingsPersonalDateFormat')} />

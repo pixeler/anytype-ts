@@ -530,12 +530,86 @@ class UtilString {
 	};
 
 	/**
-	 * Checks if a string starts with a right-to-left character.
+	 * Checks if a string has RTL (right-to-left) directionality (e.g. Persian, Arabic, Hebrew).
+	 * Handles leading spaces, zero-width characters, punctuation, numbers, and checks strong character direction.
 	 * @param {string} s - The string to check.
 	 * @returns {boolean} True if RTL, false otherwise.
 	 */
 	checkRtl (s: string): boolean {
-		return /^\s*[\u0591-\u05EA\u05F0-\u05F4\u0600-\u06FF]/.test(s);
+		if (!s) {
+			return false;
+		};
+
+		// Strip zero-width, non-printable, formatting characters and BOM
+		const str = String(s).replace(/[\u200B-\u200F\u202A-\u202E\uFEFF\u00AD]/g, '').trim();
+		if (!str) {
+			return false;
+		};
+
+		// RTL unicode ranges:
+		// Hebrew: \u0590-\u05FF, \uFB1D-\uFB4F
+		// Arabic / Persian / Urdu: \u0600-\u06FF, \u0750-\u077F, \u08A0-\u08FF, \uFB50-\uFDFF, \uFE70-\uFEFC
+		// Syriac, Thaana, etc.: \u0700-\u074F, \u0780-\u07BF, \u0800-\u085F
+		const rtlRegex = /[\u0590-\u05FF\u0600-\u06FF\u0700-\u077F\u0780-\u07BF\u0800-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFC]/;
+		const ltrRegex = /[A-Za-z\u00C0-\u024F\u0370-\u052F]/;
+
+		let firstStrong: 'rtl' | 'ltr' | null = null;
+		let rtlCount = 0;
+		let ltrCount = 0;
+
+		for (let i = 0; i < str.length; i++) {
+			const ch = str[i];
+			if (rtlRegex.test(ch)) {
+				if (!firstStrong) {
+					firstStrong = 'rtl';
+				};
+				rtlCount++;
+			} else if (ltrRegex.test(ch)) {
+				if (!firstStrong) {
+					firstStrong = 'ltr';
+				};
+				ltrCount++;
+			};
+		};
+
+		if (rtlCount === 0 && ltrCount === 0) {
+			return false;
+		};
+
+		// If first strong character is RTL, or RTL characters dominate
+		if (firstStrong === 'rtl') {
+			return true;
+		};
+		if (rtlCount > 0 && rtlCount >= ltrCount) {
+			return true;
+		};
+
+		return false;
+	};
+
+	/**
+	 * Converts Latin digits (0-9) to Persian digits (۰-۹).
+	 * @param {string|number} s - The string or number to convert.
+	 * @returns {string} The string with Persian digits.
+	 */
+	toPersianDigits (s: string | number): string {
+		if (s === null || s === undefined) {
+			return '';
+		};
+		const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+		return String(s).replace(/[0-9]/g, (w) => PERSIAN_DIGITS[Number(w)]);
+	};
+
+	/**
+	 * Converts Persian digits (۰-۹) to Latin digits (0-9).
+	 * @param {string} s - The string with Persian digits.
+	 * @returns {string} The string with Latin digits.
+	 */
+	fromPersianDigits (s: string): string {
+		if (!s) {
+			return '';
+		};
+		return String(s).replace(/[۰-۹]/g, (w) => String(w.charCodeAt(0) - 1776));
 	};
 
 	/**

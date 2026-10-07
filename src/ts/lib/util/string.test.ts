@@ -263,10 +263,34 @@ describe('UtilString', () => {
 		it('should return true for RTL text', () => {
 			expect(UtilString.checkRtl('שלום')).toBe(true);
 			expect(UtilString.checkRtl('مرحبا')).toBe(true);
+			expect(UtilString.checkRtl('سلام')).toBe(true);
+			expect(UtilString.checkRtl('گچپژ')).toBe(true);
+			expect(UtilString.checkRtl('1. سلام')).toBe(true);
+			expect(UtilString.checkRtl('- تست متن فارسی')).toBe(true);
+			expect(UtilString.checkRtl('\u200Bسلام')).toBe(true);
+			expect(UtilString.checkRtl('«فارسی»')).toBe(true);
 		});
 
 		it('should return false for LTR text', () => {
 			expect(UtilString.checkRtl('hello')).toBe(false);
+			expect(UtilString.checkRtl('1. hello world')).toBe(false);
+			expect(UtilString.checkRtl('')).toBe(false);
+		});
+	});
+
+	describe('toPersianDigits', () => {
+		it('should convert English digits to Persian digits', () => {
+			expect(UtilString.toPersianDigits(1403)).toBe('۱۴۰۳');
+			expect(UtilString.toPersianDigits('2024/05/12')).toBe('۲۰۲۴/۰۵/۱۲');
+			expect(UtilString.toPersianDigits(0)).toBe('۰');
+			expect(UtilString.toPersianDigits('')).toBe('');
+		});
+	});
+
+	describe('fromPersianDigits', () => {
+		it('should convert Persian digits to English digits', () => {
+			expect(UtilString.fromPersianDigits('۱۴۰۳')).toBe('1403');
+			expect(UtilString.fromPersianDigits('۲۰۲۴/۰۵/۱۲')).toBe('2024/05/12');
 		});
 	});
 

@@ -71,7 +71,11 @@
 
 	.foot { padding: 8px 16px 0px 16px; margin-top: 8px; border-top: 1px solid var(--color-shape-secondary); }
 	.foot {
-		.btn { display: inline-block; vertical-align: top; margin-right: 16px; transition: $transitionAllCommon; }
+		.sides { display: flex; align-items: center; justify-content: space-between; }
+		.side { width: auto; }
+		.side.left { display: flex; align-items: center; gap: 16px; }
+		.side.right { text-align: right; }
+		.btn { display: inline-block; vertical-align: top; margin: 0px; cursor: pointer; transition: $transitionAllCommon; }
 		.btn.clear { color: var(--color-text-secondary); }
 		.btn:last-child { margin: 0px; }
 		.btn:hover { color: var(--color-system-accent-100); }

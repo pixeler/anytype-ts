@@ -71,6 +71,9 @@ class CommonStore {
 	public notificationSoundValue = null;
 	public pinValue = null;
 	public firstDayValue = null;
+	public fontPreferenceValue: string | null = null;
+	public layoutDirectionValue: 'ltr' | 'rtl' | null = null;
+	public calendarTypeValue: 'gregorian' | 'persian' | null = null;
 	public gallery = {
 		categories: [],
 		list: [],
@@ -182,6 +185,9 @@ class CommonStore {
 			gridTitleClickValue: observable,
 			unicodeReplaceValue: observable,
 			notificationSoundValue: observable,
+			fontPreferenceValue: observable,
+			layoutDirectionValue: observable,
+			calendarTypeValue: observable,
 			isActiveTab: observable,
 			isPinnedValue: observable,
 			widgetSectionsValue: observable,
@@ -209,6 +215,9 @@ class CommonStore {
 			gridTitleClick: computed,
 			unicodeReplace: computed,
 			notificationSound: computed,
+			fontPreference: computed,
+			layoutDirection: computed,
+			calendarType: computed,
 			widgetSections: computed,
 			recentEditMode: computed,
 			treeSortMode: computed,
@@ -248,6 +257,9 @@ class CommonStore {
 			vaultIsMinimalSet: action,
 			gridTitleClickSet: action,
 			unicodeReplaceSet: action,
+			fontPreferenceSet: action,
+			layoutDirectionSet: action,
+			calendarTypeSet: action,
 			notificationSoundSet: action,
 			widgetSectionsInit: action,
 			widgetSectionsSet: action,
@@ -447,6 +459,42 @@ class CommonStore {
 		return this.boolGet('showRelativeDates');
 	};
 
+	get fontPreference (): string {
+		let ret = this.fontPreferenceValue;
+		if (ret === null) {
+			ret = Storage.get('fontPreference');
+		};
+		if ((undefined === ret) || (null === ret)) {
+			ret = 'system';
+		};
+		return String(ret);
+	};
+
+	get layoutDirection (): 'ltr' | 'rtl' {
+		let ret = this.layoutDirectionValue;
+		if (ret === null) {
+			ret = Storage.get('layoutDirection');
+		};
+		if (!ret) {
+			const rtlLangs = [ 'fa-IR', 'ar-SA', 'he-IL' ];
+			const lang = this.interfaceLang || '';
+			ret = (rtlLangs.includes(lang) || lang.startsWith('fa') || lang.startsWith('ar') || lang.startsWith('he')) ? 'rtl' : 'ltr';
+		};
+		return ret as 'ltr' | 'rtl';
+	};
+
+	get calendarType (): 'gregorian' | 'persian' {
+		let ret = this.calendarTypeValue;
+		if (ret === null) {
+			ret = Storage.get('calendarType');
+		};
+		if (!ret) {
+			const lang = this.interfaceLang || '';
+			ret = (lang === 'fa-IR' || lang.startsWith('fa')) ? 'persian' : 'gregorian';
+		};
+		return ret as 'gregorian' | 'persian';
+	};
+
 	get linkStyle (): I.LinkDefaultStyle {
 		let ret = this.linkStyleValue;
 		if (ret === null) {
@@ -521,7 +569,11 @@ class CommonStore {
 			this.firstDayValue = Storage.get('firstDay');
 		};
 
-		return Number(this.firstDayValue) || 1;
+		if (this.firstDayValue !== null && this.firstDayValue !== undefined) {
+			return Number(this.firstDayValue);
+		};
+
+		return (this.calendarType === 'persian') ? 6 : 1;
 	};
 
 	get updateVersion (): string {
@@ -1046,6 +1098,52 @@ class CommonStore {
 
 		U.Dom.addBodyClass('theme', c);
 		Renderer.send('setBackground');
+	};
+
+	/**
+	 * Sets the font class on documentElement.
+	 */
+	setFontClass () {
+		const f = this.fontPreference;
+		U.Dom.addBodyClass('font', f);
+	};
+
+	/**
+	 * Sets the application font preference.
+	 * @param {string} v - The font preference ('system', 'dana', 'digikala').
+	 */
+	fontPreferenceSet (v: string) {
+		this.fontPreferenceValue = v;
+		Storage.set('fontPreference', v);
+		this.setFontClass();
+	};
+
+	/**
+	 * Sets the layout direction class and dir attribute on documentElement.
+	 */
+	setLayoutDirectionClass () {
+		const dir = this.layoutDirection;
+		U.Dom.addBodyClass('direction', dir);
+		document.documentElement.dir = dir;
+	};
+
+	/**
+	 * Sets the layout direction preference.
+	 * @param {'ltr' | 'rtl'} v - The layout direction ('ltr' or 'rtl').
+	 */
+	layoutDirectionSet (v: 'ltr' | 'rtl') {
+		this.layoutDirectionValue = v;
+		Storage.set('layoutDirection', v);
+		this.setLayoutDirectionClass();
+	};
+
+	/**
+	 * Sets the calendar type preference.
+	 * @param {'gregorian' | 'persian'} v - The calendar type ('gregorian' or 'persian').
+	 */
+	calendarTypeSet (v: 'gregorian' | 'persian') {
+		this.calendarTypeValue = v;
+		Storage.set('calendarType', v);
 	};
 
 	/**

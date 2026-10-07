@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as I from 'Interface';
-import UtilDate from './date';
+import UtilDate, { toJalaali, toGregorian, toPersianDigits, fromPersianDigits } from './date';
 
 describe('UtilDate', () => {
 
@@ -455,6 +455,61 @@ describe('UtilDate', () => {
 			// change that picks a symmetric sample for the picker would trip the
 			// distinguishability test above.
 			expect(short).toBe(shortUS);
+		});
+	});
+
+	describe('Persian calendar (Solar Hijri)', () => {
+		it('should accurately convert Gregorian to Jalaali and back', () => {
+			const j = toJalaali(2026, 10, 3);
+			expect(j.jy).toBe(1405);
+			expect(j.jm).toBe(7);
+			expect(j.jd).toBe(11);
+
+			const g = toGregorian(1405, 7, 11);
+			expect(g.gy).toBe(2026);
+			expect(g.gm).toBe(10);
+			expect(g.gd).toBe(3);
+		});
+
+		it('should identify Persian leap years correctly', () => {
+			expect(UtilDate.isPersianLeapYear(1399)).toBe(true);
+			expect(UtilDate.isPersianLeapYear(1403)).toBe(true);
+			expect(UtilDate.isPersianLeapYear(1400)).toBe(false);
+			expect(UtilDate.isPersianLeapYear(1401)).toBe(false);
+			expect(UtilDate.isPersianLeapYear(1402)).toBe(false);
+			expect(UtilDate.isPersianLeapYear(1404)).toBe(false);
+		});
+
+		it('should round-trip thousands of days without error', () => {
+			for (let y = 1990; y <= 2030; y++) {
+				const j = toJalaali(y, 6, 15);
+				const g = toGregorian(j.jy, j.jm, j.jd);
+				expect(g.gy).toBe(y);
+				expect(g.gm).toBe(6);
+				expect(g.gd).toBe(15);
+			}
+		});
+
+		it('should convert and parse dates with Persian digits', () => {
+			expect(toPersianDigits(1403)).toBe('۱۴۰۳');
+			expect(fromPersianDigits('۱۴۰۳')).toBe('1403');
+
+			const ts1 = UtilDate.parseDate('2024-05-12', I.DateFormat.ISO);
+			const ts2 = UtilDate.parseDate('۲۰۲۴-۰۵-۱۲', I.DateFormat.ISO);
+			expect(ts2).toBe(ts1);
+		});
+
+		it('should format Persian dates naturally (e.g. ۹ دی ۱۴۰۴) with RLM', () => {
+			const spy = vi.spyOn(UtilDate, 'isPersianCalendar').mockReturnValue(true);
+			const ts = UtilDate.timestamp(1404, 10, 9, 12, 0, 0);
+			const formatted = UtilDate.dateWithFormat(I.DateFormat.Long, ts);
+			expect(formatted).toBe('\u200F۹ دی ۱۴۰۴');
+
+			const parsed = UtilDate.parseDate(formatted, I.DateFormat.Long);
+			expect(UtilDate.date('Y', parsed)).toBe('1404');
+			expect(UtilDate.date('n', parsed)).toBe('10');
+			expect(UtilDate.date('j', parsed)).toBe('9');
+			spy.mockRestore();
 		});
 	});
 

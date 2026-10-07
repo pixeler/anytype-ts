@@ -76,15 +76,12 @@ const CalendarSelect = forwardRef<CalendarSelectRefProps, Props>((props, ref) =>
 		cn.push(className);
 	};
 
-	const months: I.Option[] = [];
+	const isPersian = U.Date.isPersianCalendar();
+	const months: I.Option[] = U.Date.getMonths().map(it => ({ id: String(it.id), name: it.name }));
 	const years: I.Option[] = [];
 
-	for (let i = 1; i <= 12; ++i) {
-		months.push({ id: String(i), name: translate(`month${i}`) });
-	};
-
 	for (let i = 0; i <= 3000; ++i) {
-		years.push({ id: String(i), name: String(i) });
+		years.push({ id: String(i), name: isPersian ? U.String.toPersianDigits(i) : String(i) });
 	};
 
 	useEffect(() => {
@@ -431,7 +428,7 @@ const CalendarSelect = forwardRef<CalendarSelectRefProps, Props>((props, ref) =>
 							onContextMenu={onDayContextMenu ? e => onDayContextMenu(e, item) : undefined}
 						>
 							<div className="inner">
-								{item.d}
+								{isPersian ? U.String.toPersianDigits(item.d) : item.d}
 								{hasDot ? <div className="bullet" /> : ''}
 							</div>
 						</div>

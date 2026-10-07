@@ -14,11 +14,12 @@ const MenuCalendarDay = forwardRef<I.MenuRef, I.Menu>((props, ref) => {
 	const subId = [ getId(), data.subId ].join('-');
 	const n = useRef(0);
 
-	let label = d;
+	let label: any = U.Date.isPersianCalendar() ? U.String.toPersianDigits(d) : d;
 	let size = 16;
 
 	if (fromWidget) {
-		label = `${U.Date.date('l, M j', timestamp)}`;
+		const formatted = U.Date.date('l, M j', timestamp);
+		label = U.Date.isPersianCalendar() ? U.String.toPersianDigits(formatted) : formatted;
 		size = 18;
 	};
 

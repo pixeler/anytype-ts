@@ -531,6 +531,10 @@ class WindowManager {
 			return { action: 'deny' as const };
 		});
 
+		view.webContents.on('console-message', (e: any, level: number, message: string, line: number, sourceId: string) => {
+			Util.log('info', `[Renderer ${level}] ${message} (${sourceId}:${line})`);
+		});
+
 		view.webContents.on('context-menu', (e: Electron.Event, param: Electron.ContextMenuParams) => {
 			Util.sendToTab(win, view.id, 'spellcheck', param.misspelledWord, param.dictionarySuggestions, param.x, param.y, param.selectionRect);
 		});

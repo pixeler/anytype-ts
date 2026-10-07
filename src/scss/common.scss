@@ -4,8 +4,34 @@
 * { padding: 0px; margin: 0px; border: 0px; box-sizing: border-box; }
 html, body { height: 100%; }
 
+:root {
+	--font-app: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+html.fontSystem {
+	--font-app: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+html.fontDana {
+	--font-app: 'Dana', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+html.fontDigikala {
+	--font-app: 'Digikala', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html.fontDana, html.fontDigikala, html.fontSystem {
+	font-family: var(--font-app);
+}
+html.fontDana, html.fontDigikala, html.fontSystem {
+	body, button, input, textarea, select, #root, #appContainer {
+		font-family: var(--font-app);
+	}
+
+	*:not(code):not(pre):not(kbd):not(samp):not(.mono):not(.monospace):not([class*="code"]):not([class*="prism"]):not([class*="icon"]):not(.katex):not(.katex *) {
+		font-family: var(--font-app);
+	}
+}
+
 body {
-	font-family: 'Inter'; @include text-common; color: var(--color-text-primary); overflow: hidden; background: var(--color-bg-primary);
+	font-family: var(--font-app); @include text-common; color: var(--color-text-primary); overflow: hidden; background: var(--color-bg-primary);
 	-webkit-font-smoothing: antialiased; backface-visibility: hidden; transform-style: flat; overscroll-behavior: none;
 }
 body.colResize { cursor: col-resize !important; }
@@ -34,7 +60,7 @@ textarea:-webkit-autofill:focus,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus { transition: background-color 5000s linear 0s; }
-input, textarea, select { font-family: 'Inter'; }
+input, textarea, select { font-family: var(--font-app); }
 
 #root { height: 100%; }
 #appContainer { display: flex; flex-direction: column; height: 100%; }
@@ -234,5 +260,258 @@ html {
 		::-webkit-scrollbar-thumb { background: var(--color-control-active); border-radius: 5px; }
 		::-webkit-scrollbar-corner { background-color: transparent; }
 		::-webkit-scrollbar-button { display: none; }
+	}
+}
+
+html.directionRtl, html[dir="rtl"] {
+	direction: rtl;
+	text-align: right;
+
+	.select {
+		padding: 3px 6px 3px 20px;
+		&:not(.round) .icon.arrow { right: auto !important; left: 0px !important; }
+		.item .icon, .item .iconObject { margin-right: 0px; margin-left: 6px; }
+		&.big {
+			padding: 9px 12px 9px 26px;
+			.icon.arrow { right: auto !important; left: 4px !important; }
+		}
+	}
+
+	.settingsPageContainer .row .select {
+		margin-right: 0px;
+		margin-left: -8px;
+	}
+
+	.sidebar.left {
+		left: auto; right: 0px;
+		.resize-h { right: auto; left: -12px; }
+		.pageWrapper { padding: 0px 8px 8px 0px; }
+		.pageWrapper.isClosed { padding-right: 0px; padding-left: 0px; }
+		.subPageWrapper .sidebarPage {
+			border-radius: 0px 12px 12px 0px;
+			border-right: none;
+			border-left: 1px solid var(--color-shape-secondary);
+		}
+		.createGroup {
+			.createButton { padding-left: 0px; padding-right: 4px; border-radius: 0px 16px 16px 0px; }
+			.createArrow { padding-right: 0px; padding-left: 4px; border-radius: 16px 0px 0px 16px; }
+		}
+	}
+
+	.sidebar.right {
+		right: auto; left: 0px;
+		.resize-h { left: auto; right: -12px; }
+		.sidebarPage {
+			border-left: none;
+			border-right: 1px solid var(--color-shape-secondary);
+			border-radius: 12px 0px 0px 12px;
+			margin-right: 0px;
+			margin-left: 4px;
+		}
+	}
+
+	.pageFlex {
+		padding: 0px 0px 8px 8px;
+		&.withSidebarRight { padding-left: 0px; padding-right: 8px; }
+		&.withSidebarRight #page { border-top-left-radius: 0px; border-bottom-left-radius: 0px; border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+		&.withSidebarSubLeft #page { border-top-right-radius: 0px; border-bottom-right-radius: 0px; border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+	}
+
+	.sidebarPage.pageWidget .widgetSection > .nameWrap .icon.arrow {
+		transform: rotateZ(90deg);
+	}
+	.sidebarPage.pageWidget .widgetSection.isOpen > .nameWrap .icon.arrow {
+		transform: rotateZ(0deg);
+	}
+
+	#sidebarUpdateBanner {
+		left: auto; right: 12px;
+	}
+
+	.editor.withIcon, .editor.withIconAndCover {
+		.controlButtons { left: auto !important; right: 114px !important; text-align: right !important; }
+	}
+
+	.calendarSelect {
+		.foot {
+			.side.right { text-align: left; }
+		}
+	}
+
+	/* Header Navigation & Back/Forward Arrows */
+	.header .arrowWrapper {
+		display: inline-flex;
+		flex-direction: row;
+		.icon:not(.forward) {
+			/* Back button: points right in RTL */
+			transform: scaleX(-1) !important;
+		}
+		.icon.forward {
+			/* Forward button: points left in RTL */
+			transform: none !important;
+		}
+	}
+
+	/* General Back Buttons */
+	.icon.commonBack:not(.forward),
+	.icon.back:not(.forward),
+	.icon.arrow.back:not(.forward),
+	.settingsBack .icon,
+	.sidebarPage.pageSettings .icon.back,
+	.sidebarPage.pageWidget .icon.back,
+	.header.authIndex .icon.back,
+	.header.authLogout .icon.back {
+		transform: scaleX(-1) !important;
+	}
+
+	/* Calendar Navigation Arrows */
+	.calendarSelect,
+	.viewCalendar,
+	.widgetCalendar {
+		.head .side.right,
+		.dateSelect .side.right {
+			display: flex;
+			flex-direction: row;
+			justify-content: flex-end;
+		}
+		.icon.arrow.left,
+		.icon.arrow:not(.right) {
+			/* Previous month: points right in RTL */
+			transform: rotateZ(180deg) !important;
+		}
+		.icon.arrow.right {
+			/* Next month: points left in RTL */
+			transform: rotateZ(0deg) !important;
+		}
+	}
+
+	/* Menu Submenu Arrows & Text Alignment */
+	.menu {
+		text-align: right;
+
+		.header {
+			text-align: right;
+			.icon.arrow.back, .icon.back {
+				transform: scaleX(-1) !important;
+			}
+		}
+
+		.item {
+			text-align: right;
+
+			.icon:first-child,
+			.iconObject {
+				margin-right: 0px !important;
+				margin-left: 6px !important;
+			}
+			.icon.plus {
+				margin-right: 0px !important;
+				margin-left: 6px !important;
+			}
+			.icon.arrow,
+			.icon.arrowItem,
+			[name="arrow/item"] {
+				right: auto !important;
+				left: 8px !important;
+				transform: scaleX(-1) !important;
+			}
+			.icon.chk {
+				right: auto !important;
+				left: 8px !important;
+			}
+			.icon.delete,
+			.icon.more,
+			.icon.copy {
+				right: auto !important;
+				left: 10px !important;
+			}
+			.highlightMark {
+				right: auto !important;
+				left: 16px !important;
+			}
+
+			&.withCaption.withArrow .caption {
+				padding-right: 0px !important;
+				padding-left: 12px !important;
+				text-align: left !important;
+			}
+
+			&.withDescription {
+				.iconMain, .iconObject {
+					left: auto !important;
+					right: 16px !important;
+				}
+				.txt {
+					text-align: right;
+				}
+			}
+		}
+
+		.sectionName {
+			text-align: right;
+		}
+	}
+
+	/* Tree View / Sidebar Nested Arrows */
+	.widget.widgetTree {
+		.item {
+			.arrowWrap {
+				.icon.arrow {
+					transform: rotate(90deg) !important;
+				}
+			}
+			&.isOpen .arrowWrap {
+				.icon.arrow {
+					transform: rotate(0deg) !important;
+				}
+			}
+			.iconObject {
+				margin-right: 0px !important;
+				margin-left: 6px !important;
+			}
+			.name {
+				text-align: right;
+			}
+		}
+	}
+
+	/* Archive / Group Expansion Arrows */
+	.icon.groupArrow {
+		transform: rotate(90deg) !important;
+		&.isExpanded {
+			transform: rotate(0deg) !important;
+		}
+	}
+
+	/* Settings Pages Text & Arrows */
+	.settingsPageContainer,
+	.pageSettings,
+	.settingsPage {
+		text-align: right;
+
+		.title, .descr, .name {
+			text-align: right;
+		}
+
+		.item {
+			.icon.arrow {
+				transform: scaleX(-1) !important;
+			}
+		}
+	}
+
+	/* Popups & Modals */
+	.popups .popup,
+	.confirmMessage,
+	.popup .innerWrap,
+	.popup .title,
+	.popup .desc,
+	.popup .description {
+		text-align: right;
+	}
+
+	/* Default Block Alignment */
+	.block.align0 > .wrapContent {
+		text-align: right;
 	}
 }

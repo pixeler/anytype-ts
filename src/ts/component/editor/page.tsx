@@ -925,11 +925,14 @@ const EditorPage = forwardRef<I.BlockRef, Props>((props, ref) => {
 			// Open action/add menu
 			keyboard.shortcut('menuAction, menuAdd', e, pressed => {
 				const menuId = pressed == 'menuAction' ? 'blockAction' : 'blockAdd';
+				const firstBlock = S.Block.getLeaf(rootId, ids[0]);
+				const isRtl = firstBlock && (U.String.checkRtl(firstBlock.getText?.() || '') || Boolean(firstBlock.fields?.isRtlDetected) || (firstBlock.hAlign === I.BlockHAlign.Right));
 
 				S.Menu.closeAll([ 'blockContext', 'blockAdd', 'blockAction' ], () => {
 					S.Menu.open(menuId, {
 						element: `#block-${U.Common.esc(ids[0])}`,
-						classNameWrap: 'fromBlock',
+						classNameWrap: isRtl ? 'fromBlock isRtl' : 'fromBlock',
+						horizontal: isRtl ? I.MenuDirection.Right : I.MenuDirection.Left,
 						offsetX: J.Size.blockMenu,
 						data: {
 							blockId: ids[0],
@@ -2260,13 +2263,21 @@ const EditorPage = forwardRef<I.BlockRef, Props>((props, ref) => {
 			return;
 		};
 
+		const blockText = block.getText?.() || text || '';
+		const isRtl = U.String.checkRtl(blockText) || Boolean(block.fields?.isRtlDetected) || (block.hAlign === I.BlockHAlign.Right);
+
 		S.Common.filterSet(range.from, '');
 
 		S.Menu.open('blockAdd', {
 			element: `#block-${U.Common.esc(blockId)}`,
-			classNameWrap: 'fromBlock',
+			classNameWrap: isRtl ? 'fromBlock isRtl' : 'fromBlock',
 			subIds: J.Menu.add,
+			horizontal: isRtl ? I.MenuDirection.Right : I.MenuDirection.Left,
 			rect: rect ? { ...rect, y: rect.y + window.scrollY } : null,
+			recalcRect: () => {
+				const rect = U.Dom.getSelectionRect();
+				return rect ? { ...rect, y: rect.y + window.scrollY } : null;
+			},
 			offsetX: () => {
 				const rect = U.Dom.getSelectionRect();
 				return rect ? 0 : J.Size.blockMenu;
